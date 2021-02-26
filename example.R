@@ -51,6 +51,20 @@ print(relative_running_time_plot(list(mt_kahypar_fast_64,
                                  latex_export = F,
                                  small_size = F))
 
+############## Performance Profile Plot ############## 
+
+print(performace_plot(list(mt_kahypar_fast_64, 
+                     mt_kahypar_strong_64, 
+                     zoltan_64, 
+                     patoh_d), 
+                objective = "avg_km1", 
+                hide_y_axis_title = F,
+                show_infeasible_tick = T,
+                show_timeout_tick = T,
+                widths = c(3,2,1,1),
+                latex_export = F,
+                small_size = F))
+
 
 ############## Speed Up Plot ############## 
 

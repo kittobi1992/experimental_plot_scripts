@@ -48,10 +48,12 @@ plot_line_size <- function(latex_export = F) {
 
 create_theme <- function(latex_export = F,
                          small_size = F,
+                         aspect_ratio = 2/(1+sqrt(5)),
                          legend_position = "bottom",
                          x_axis_text_angle = 0,
-                         x_axis_text_hjust = 0.5 ) {
-  return(theme(aspect.ratio =2/(1+sqrt(5)),
+                         x_axis_text_hjust = 0.5,
+                         panel_grid_size = 0.25) {
+  return(theme(aspect.ratio = aspect_ratio,
                legend.position = legend_position,
                legend.background = element_blank(),
                legend.title=element_blank(),
@@ -62,7 +64,7 @@ create_theme <- function(latex_export = F,
                legend.title.align = 0.5,
                strip.background = element_blank(),
                strip.text = element_blank(),
-               panel.grid.major = element_line(linetype="dotted",size = 0.25, color = "grey"),
+               panel.grid.major = element_line(linetype="11",size = panel_grid_size, color = "grey"),
                panel.grid.minor =element_blank(),
                axis.line = element_line(size = 0.2, color = "black"),
                axis.title.y = element_text(size = axis_title_size(latex_export, small_size), vjust = 1.5, color = "black"),

@@ -153,7 +153,7 @@ detailed_speed_up_vs_single_threaded_plot <- function(dataframes,
     scale_fill_manual(values=algo_color_mapping, drop = F) +
     theme_bw(base_size = 10) +
     labs(x=paste("Single-Threaded Running Time of Component",to_latex_math_mode("[s]",latex_export),sep=" "), 
-         y=paste("Harmonic Mean Speed Up", to_latex_math_mode("[\\ge x]", latex_export), sep=" ")) +
+         y=paste("Harmonic Mean Speed Up", ifelse(latex_export, "$[\\ge x]$", "[>= 0]"), sep=" ")) +
     create_theme(latex_export, small_size, legend_position = "bottom") +
     guides(colour = guide_legend(title=NULL, ncol = length(levels(factor(data$algorithm))), byrow = 
                                    F, title.position = "top"))
