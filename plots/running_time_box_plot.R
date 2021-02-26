@@ -1,11 +1,11 @@
 sqrt5_trans = function() trans_new("sqrt5", function(x) x^(1/5), function(x) x^5)
 
-running_time_plot <- function(dataframes, 
-                              show_infeasible_tick = T,
-                              show_timeout_tick = T,
-                              order = NULL,
-                              latex_export = F,
-                              small_size = F) {
+running_time_box_plot <- function(dataframes, 
+                                  show_infeasible_tick = T,
+                                  show_timeout_tick = T,
+                                  order = NULL,
+                                  latex_export = F,
+                                  small_size = F) {
   
   # Prepare data frame containing all relevant data for the plot
   result <- data.frame(algorithm = character(),
@@ -49,6 +49,7 @@ running_time_plot <- function(dataframes,
     result$algorithm <- factor(result$algorithm, levels = levels)
   }
   
+  # Create Running Time Box Plot
   gmean_time_aggreg = function(df) data.frame(gmean_time = gm_mean(df$avg_time))
   result_gmean <- ddply(result, c("algorithm"), gmean_time_aggreg)
   running_time = ggplot(result, aes(x=algorithm, y=avg_time, fill=algorithm)) +
@@ -62,7 +63,7 @@ running_time_plot <- function(dataframes,
     scale_color_manual(values=algo_color_mapping, drop = F) +
     scale_fill_manual(values=algo_color_mapping, drop = F) +
     labs(x="", y=paste("Running Time",to_latex_math_mode("[s]",latex_export),sep=" ")) +
-    create_theme(latex_export, small_size, legend_position = "none", x_axis_text_angle = 15)
+    create_theme(latex_export, small_size, legend_position = "none", x_axis_text_angle = 15, x_axis_text_hjust = 1)
   if ( contains_invalid_results ) {
     running_time <- running_time + geom_hline(yintercept = (max_pow10_time + infeasible_value) / 2, size = 0.5, alpha = 0.5)
   }

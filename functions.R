@@ -29,6 +29,7 @@ library(cowplot)
 
 source("plots/plots_common.R")
 source("plots/running_time_box_plot.R")
+source("plots/relative_running_time_plot.R")
 
 csv_aggreg = function(df) data.frame(min_km1 = min(df$km1, na.rm=TRUE),
                                      avg_km1 = mean(df$km1, na.rm=TRUE),

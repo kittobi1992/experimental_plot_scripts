@@ -37,20 +37,36 @@ plot_point_size <- function(latex_export = F) {
   }
 }
 
+plot_line_size <- function(latex_export = F) {
+  if ( latex_export ) {
+    return(0.25)
+  } else {
+    return(0.5)
+  }
+}
+
+
 create_theme <- function(latex_export = F,
                          small_size = F,
                          legend_position = "bottom",
-                         x_axis_text_angle = 0) {
+                         x_axis_text_angle = 0,
+                         x_axis_text_hjust = 0.5 ) {
   return(theme(aspect.ratio =2/(1+sqrt(5)),
                legend.position = legend_position,
-               panel.grid.major = element_line(linetype="dotted",size = 0.25, 
-                                               color = "grey"),
+               legend.background = element_blank(),
+               legend.title=element_blank(),
+               legend.margin = margin(-5, 0, 0, 0),
+               legend.key=element_blank(),
+               legend.text = element_text(size = axis_text_size(latex_export, small_size)),
+               legend.box = NULL,
+               legend.title.align = 0.5,
+               panel.grid.major = element_line(linetype="dotted",size = 0.25, color = "grey"),
                panel.grid.minor =element_blank(),
                axis.line = element_line(size = 0.2, color = "black"),
-               axis.title.y = element_text(vjust=1.5, size = axis_title_size(latex_export, small_size)),
-               axis.title.x =  element_text(size = axis_title_size(latex_export, small_size)),
-               axis.text.x = element_text(angle = x_axis_text_angle, hjust = 1, size = axis_text_size(latex_export, small_size)),
-               axis.text.y = element_text(size = axis_text_size(latex_export, small_size))))
+               axis.title.y = element_text(vjust=1.5, size = axis_title_size(latex_export, small_size), color = "black"),
+               axis.title.x =  element_text(size = axis_title_size(latex_export, small_size), color = "black"),
+               axis.text.x = element_text(angle = x_axis_text_angle, hjust = x_axis_text_hjust, size = axis_text_size(latex_export, small_size), color = "black"),
+               axis.text.y = element_text(size = axis_text_size(latex_export, small_size), color = "black")))
 }
 
 to_latex_math_mode <- function(x, latex_export = F) {

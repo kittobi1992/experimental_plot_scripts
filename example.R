@@ -27,13 +27,27 @@ algo_color_mapping <- c("Mt-KaHyPar Fast 64" = palette[[1]],
 
 ############## Running Time Box Plot ############## 
 
-levels <- c("PaToH-D", "Mt-KaHyPar Strong 64", "Zoltan 64", "Mt-KaHyPar Fast 64")
-print(running_time_plot(list(mt_kahypar_fast_64, 
-                             mt_kahypar_strong_64, 
-                             zoltan_64, 
-                             patoh_d), 
-                        show_infeasible_tick = T,
-                        show_timeout_tick = T,
-                        order = levels,
-                        latex_export = F,
-                        small_size = F))
+order <- c("PaToH-D", "Mt-KaHyPar Strong 64", "Zoltan 64", "Mt-KaHyPar Fast 64")
+print(running_time_box_plot(list(mt_kahypar_fast_64, 
+                                 mt_kahypar_strong_64, 
+                                 zoltan_64, 
+                                 patoh_d), 
+                            show_infeasible_tick = T,
+                            show_timeout_tick = T,
+                            order = order,
+                            latex_export = F,
+                            small_size = F))
+
+############## Relative Running Time Plot ############## 
+
+print(relative_running_time_plot(list(mt_kahypar_fast_64,
+                                      zoltan_64, 
+                                      patoh_d), 
+                                 relative_to = mt_kahypar_strong_64, 
+                                 use_log10 = F,
+                                 sparsify_y_ticks = T,                                       
+                                 show_timeout_tick = T,
+                                 show_infeasible_tick = T,
+                                 latex_export = F,
+                                 small_size = F))
+
