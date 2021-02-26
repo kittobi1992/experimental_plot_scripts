@@ -51,3 +51,34 @@ print(relative_running_time_plot(list(mt_kahypar_fast_64,
                                  latex_export = F,
                                  small_size = F))
 
+
+############## Speed Up Plot ############## 
+
+# Read Data Frames
+mt_kahypar_q_1 <- aggreg_speed_up_data(read.csv("data/mt_kahypar_q_1.csv", header = TRUE))
+mt_kahypar_q_4 <- aggreg_speed_up_data(read.csv("data/mt_kahypar_q_4.csv", header = TRUE))
+mt_kahypar_q_16 <- aggreg_speed_up_data(read.csv("data/mt_kahypar_q_16.csv", header = TRUE))
+mt_kahypar_q_64 <- aggreg_speed_up_data(read.csv("data/mt_kahypar_q_64.csv", header = TRUE))
+
+# Set Algorithm Name
+mt_kahypar_q_1$algorithm <- "Mt-KaHyPar-Q 1"
+mt_kahypar_q_4$algorithm <- "Mt-KaHyPar-Q 4"
+mt_kahypar_q_16$algorithm <- "Mt-KaHyPar-Q 16"
+mt_kahypar_q_64$algorithm <- "Mt-KaHyPar-Q 64"
+
+# Specify Colors of Algorithms in Plots
+palette <- brewer.pal(n = 9, name = "Set1")
+algo_color_mapping <- c("Mt-KaHyPar-Q 64" = palette[[1]],
+                        "Mt-KaHyPar-Q 16" = palette[[2]],
+                        "Mt-KaHyPar-Q 4" = palette[[3]],
+                        "Mt-KaHyPar-Q 1" = palette[[4]])
+
+# Compute Speed Up
+objectives <- c("total", "coarsening", "initial_partitioning", "batch_uncontraction", "label_propagation", "fm")
+print(detailed_speed_up_vs_single_threaded_plot(list(mt_kahypar_q_4,
+                                                     mt_kahypar_q_16,
+                                                     mt_kahypar_q_64),
+                                                relative_to = mt_kahypar_q_1,
+                                                objectives, 
+                                                latex_export = F,
+                                                small_size = F))

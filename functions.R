@@ -30,6 +30,7 @@ library(cowplot)
 source("plots/plots_common.R")
 source("plots/running_time_box_plot.R")
 source("plots/relative_running_time_plot.R")
+source("plots/speed_up_plot.R")
 
 csv_aggreg = function(df) data.frame(min_km1 = min(df$km1, na.rm=TRUE),
                                      avg_km1 = mean(df$km1, na.rm=TRUE),
@@ -40,6 +41,26 @@ csv_aggreg = function(df) data.frame(min_km1 = min(df$km1, na.rm=TRUE),
                                      avg_time = mean(as.numeric(df$totalPartitionTime), na.rm=TRUE),
                                      timeout = all(as.logical(df$timeout)),
                                      failed = all(as.logical(df$failed)))
+
+csv_speed_up_aggreg = function(df) data.frame(min_km1 = min(df$km1, na.rm=TRUE),
+                                     avg_km1 = mean(df$km1, na.rm=TRUE),
+                                     min_imbalance = min(df$imbalance, na.rm=TRUE),
+                                     avg_imbalance = mean(df$imbalance, na.rm=TRUE),
+                                     min_total_time = min(as.numeric(df$totalPartitionTime), na.rm=TRUE),
+                                     avg_total_time = mean(as.numeric(df$totalPartitionTime), na.rm=TRUE),
+                                     avg_time = mean(as.numeric(df$totalPartitionTime), na.rm=TRUE),
+                                     min_preprocessing_time = min(as.numeric(df$preprocessing_time), na.rm=TRUE),
+                                     avg_preprocessing_time = mean(as.numeric(df$preprocessing_time), na.rm=TRUE),
+                                     min_coarsening_time = min(as.numeric(df$coarsening_time), na.rm=TRUE),
+                                     avg_coarsening_time = mean(as.numeric(df$coarsening_time), na.rm=TRUE),
+                                     min_initial_partitioning_time = min(as.numeric(df$initial_partitioning_time), na.rm=TRUE),
+                                     avg_initial_partitioning_time = mean(as.numeric(df$initial_partitioning_time), na.rm=TRUE),
+                                     min_batch_uncontraction_time = min(as.numeric(df$batch_uncontraction_time), na.rm=TRUE),
+                                     avg_batch_uncontraction_time = mean(as.numeric(df$batch_uncontraction_time), na.rm=TRUE),
+                                     min_label_propagation_time = min(as.numeric(df$label_propagation_time), na.rm=TRUE),
+                                     avg_label_propagation_time = mean(as.numeric(df$label_propagation_time), na.rm=TRUE),
+                                     min_fm_time = min(as.numeric(df$fm_time), na.rm=TRUE),
+                                     avg_fm_time = mean(as.numeric(df$fm_time), na.rm=TRUE))
 
 aggreg_data <- function(data, timelimit, epsilon) {
   # Invalidate all objectives of imbalanced solutions
@@ -70,6 +91,35 @@ aggreg_data <- function(data, timelimit, epsilon) {
   return(data)
 }
 
+csv_speed_up_aggreg = function(df) data.frame(min_km1 = min(df$km1, na.rm=TRUE),
+                                              avg_km1 = mean(df$km1, na.rm=TRUE),
+                                              min_imbalance = min(df$imbalance, na.rm=TRUE),
+                                              avg_imbalance = mean(df$imbalance, na.rm=TRUE),
+                                              min_total_time = min(as.numeric(df$totalPartitionTime), na.rm=TRUE),
+                                              avg_total_time = mean(as.numeric(df$totalPartitionTime), na.rm=TRUE),
+                                              avg_time = mean(as.numeric(df$totalPartitionTime), na.rm=TRUE),
+                                              min_preprocessing_time = min(as.numeric(df$preprocessing_time), na.rm=TRUE),
+                                              avg_preprocessing_time = mean(as.numeric(df$preprocessing_time), na.rm=TRUE),
+                                              min_coarsening_time = min(as.numeric(df$coarsening_time), na.rm=TRUE),
+                                              avg_coarsening_time = mean(as.numeric(df$coarsening_time), na.rm=TRUE),
+                                              min_initial_partitioning_time = min(as.numeric(df$initial_partitioning_time), na.rm=TRUE),
+                                              avg_initial_partitioning_time = mean(as.numeric(df$initial_partitioning_time), na.rm=TRUE),
+                                              min_batch_uncontraction_time = min(as.numeric(df$batch_uncontraction_time), na.rm=TRUE),
+                                              avg_batch_uncontraction_time = mean(as.numeric(df$batch_uncontraction_time), na.rm=TRUE),
+                                              min_label_propagation_time = min(as.numeric(df$label_propagation_time), na.rm=TRUE),
+                                              avg_label_propagation_time = mean(as.numeric(df$label_propagation_time), na.rm=TRUE),
+                                              min_fm_time = min(as.numeric(df$fm_time), na.rm=TRUE),
+                                              avg_fm_time = mean(as.numeric(df$fm_time), na.rm=TRUE))
+
+aggreg_speed_up_data <- function(data) {
+  data <- ddply(data, c("graph", "k", "epsilon",  "num_threads"), csv_speed_up_aggreg)
+  data$timeout <- FALSE
+  data$failed <- FALSE
+  data$infeasible <- FALSE
+  data$invalid <- FALSE
+  return(data)
+}
+
 # Computes the geometric mean of a vector
 gm_mean = function(x, na.rm=TRUE, zero.propagate = FALSE){
   if(any(x < 0, na.rm = TRUE)){
@@ -83,5 +133,9 @@ gm_mean = function(x, na.rm=TRUE, zero.propagate = FALSE){
   } else {
     return(exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x)))
   }
+}
+
+harmonic_mean = function(x) {
+  return(length(x) / sum( 1.0 / x[x > 0] ))
 }
 

@@ -46,7 +46,7 @@ running_time_box_plot <- function(dataframes,
   }
   
   if ( !is.null(levels) ) {
-    result$algorithm <- factor(result$algorithm, levels = levels)
+    result$algorithm <- factor(result$algorithm, levels = order)
   }
   
   # Create Running Time Box Plot
