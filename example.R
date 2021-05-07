@@ -1,5 +1,3 @@
-experiment_folder <- paste(path.expand("~"), "experimental_plot_scripts", sep = "/")
-setwd(experiment_folder)
 source("functions.R")
 
 ############## SETUP DATA FRAMES ############## 
@@ -27,6 +25,7 @@ algo_color_mapping <- c("Mt-KaHyPar Fast 64" = palette[[1]],
 
 ############## Running Time Box Plot ############## 
 
+# Total Running Time
 order <- c("PaToH-D", "Mt-KaHyPar Strong 64", "Zoltan 64", "Mt-KaHyPar Fast 64")
 print(running_time_box_plot(list(mt_kahypar_fast_64, 
                                  mt_kahypar_strong_64, 
@@ -37,6 +36,24 @@ print(running_time_box_plot(list(mt_kahypar_fast_64,
                             order = order,
                             latex_export = F,
                             small_size = F))
+
+# Running Time per pin
+instances <- read.csv("data/instances.csv", header = TRUE)
+mt_kahypar_fast_64 <- compute_avg_time_per_pin(mt_kahypar_fast_64, instances)
+mt_kahypar_strong_64 <- compute_avg_time_per_pin(mt_kahypar_strong_64, instances)
+zoltan_64 <- compute_avg_time_per_pin(zoltan_64, instances)
+patoh_d <- compute_avg_time_per_pin(patoh_d, instances)
+
+order <- c("PaToH-D", "Mt-KaHyPar Strong 64", "Zoltan 64", "Mt-KaHyPar Fast 64")
+print(running_time_per_pin_box_plot(list(mt_kahypar_fast_64, 
+                                         mt_kahypar_strong_64, 
+                                         zoltan_64, 
+                                         patoh_d), 
+                                    show_infeasible_tick = T,
+                                    show_timeout_tick = T,
+                                    order = order,
+                                    latex_export = F,
+                                    small_size = F))
 
 ############## Relative Running Time Plot ############## 
 
@@ -59,12 +76,48 @@ print(performace_plot(list(mt_kahypar_fast_64,
                      patoh_d), 
                 objective = "avg_km1", 
                 hide_y_axis_title = F,
-                show_infeasible_tick = T,
+                show_infeasible_tick = F,
                 show_timeout_tick = T,
                 widths = c(3,2,1,1),
                 latex_export = F,
                 small_size = F))
 
+
+############## Quality - Running Time Trade-Off Plot ############## 
+
+print(tradeoff_plot(list(mt_kahypar_fast_64,
+                         zoltan_64, 
+                         patoh_d), 
+                    relative_to = mt_kahypar_strong_64, 
+                    objective = "avg_km1",
+                    order = order,
+                    ncol = 3,
+                    legend_col = 4,
+                    latex_export = F,
+                    small_size = F))
+
+############## Effectiveness Tests ############## 
+
+# This function is expensive. Execute it once and then use the out csv
+mt_kahypar_fast_64_all <- read.csv("data/mt_kahypar_fast_64.csv", header = TRUE)
+mt_kahypar_strong_64_all <- read.csv("data/mt_kahypar_strong_64.csv", header = TRUE)
+eff_mt_kahypar_fast_vs_strong <- 
+  effectivenessTestDataFrame(num_virtual_instances = 8,
+                             mt_kahypar_fast_64_all, "Mt-KaHyPar Fast 64",
+                             mt_kahypar_strong_64_all, "Mt-KaHyPar Strong 64",
+                             output_csv_file = "data/eff_mt_kahypar_fast_vs_strong.csv",
+                             timelimit = 7200)
+eff_mt_kahypar_fast_vs_strong <- read.csv("data/eff_mt_kahypar_fast_vs_strong.csv", header = TRUE)
+print(effectivenessTestPerformanceProfile(eff_mt_kahypar_fast_vs_strong, 
+                                          "Mt-KaHyPar Fast 64",
+                                          "Mt-KaHyPar Strong 64",
+                                          objective = "avg_km1", 
+                                          hide_y_axis_title = F,
+                                          show_infeasible_tick = F,
+                                          show_timeout_tick = T,
+                                          widths = c(3,2,1,1),
+                                          latex_export = F,
+                                          small_size = F))
 
 ############## Speed Up Plot ############## 
 

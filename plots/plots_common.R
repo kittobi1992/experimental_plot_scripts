@@ -10,14 +10,25 @@ axis_text_size <- function(latex_export = F,
   }
 }
 
+legend_text_size <- function(latex_export = F,
+                             small_size = F) {
+  if ( small_size ) {
+    return(6)
+  } else if ( latex_export ) {
+    return(8)
+  } else {
+    return(10)
+  }
+}
+
 axis_title_size <- function(latex_export = F,
                             small_size = F) {
   if ( small_size ) {
-    return(8)
+    return(6)
   } else if ( latex_export ) {
-    return(10)
+    return(8)
   } else {
-    return(12)
+    return(10)
   }
 }
 
@@ -26,6 +37,14 @@ plot_text_size <- function(latex_export = F) {
     return(2)
   } else {
     return(4)
+  }
+}
+
+plot_title_size <- function(latex_export = F) {
+  if ( latex_export ) {
+    return(10)
+  } else {
+    return(12)
   }
 }
 
@@ -39,9 +58,9 @@ plot_point_size <- function(latex_export = F) {
 
 plot_line_size <- function(latex_export = F) {
   if ( latex_export ) {
-    return(0.25)
-  } else {
     return(0.5)
+  } else {
+    return(0.75)
   }
 }
 
@@ -59,13 +78,14 @@ create_theme <- function(latex_export = F,
                legend.title=element_blank(),
                legend.margin = margin(-5, 0, 0, 0),
                legend.key=element_blank(),
-               legend.text = element_text(size = axis_text_size(latex_export, small_size)),
+               legend.text = element_text(size = legend_text_size(latex_export, small_size)),
                legend.box = NULL,
                legend.title.align = 0.5,
                strip.background = element_blank(),
                strip.text = element_blank(),
                panel.grid.major = element_line(linetype="11",size = panel_grid_size, color = "grey"),
                panel.grid.minor =element_blank(),
+               plot.title = element_text(size = plot_title_size(latex_export), hjust = 0.5),
                axis.line = element_line(size = 0.2, color = "black"),
                axis.title.y = element_text(size = axis_title_size(latex_export, small_size), vjust = 1.5, color = "black"),
                axis.title.x =  element_text(size = axis_title_size(latex_export, small_size), vjust = 1.5, color = "black"),

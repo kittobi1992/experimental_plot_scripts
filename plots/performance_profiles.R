@@ -4,10 +4,14 @@ lam_trans = function() trans_new('lam',
 
 performace_plot <- function(dataframes, 
                             objective = "avg_km1", 
+                            effectivenes_test = F, 
                             hide_y_axis_title = F,
                             show_infeasible_tick = T,
                             show_timeout_tick = T,
                             widths = c(4,2,1,1),
+                            title = NULL,
+                            legend_top_margin = 0,
+                            show_legend = TRUE,
                             latex_export = F,
                             small_size = F) {
   
@@ -30,22 +34,55 @@ performace_plot <- function(dataframes,
                                     plot_km1_quality[[2]]+theme(legend.position = "none", plot.margin =  margin(5.5, -2.9, 0, 0)),
                                     plot_km1_quality[[3]]+theme(plot.margin =  margin(5.5, -2.9, 0, 0)),
                                     plot_km1_quality[[4]]+theme(plot.margin =  margin(5.5, 0, 0, 0)),
-                                    bottom = text_grob(ifelse(latex_export, "$\\tau$", "tau"), size = axis_title_size(latex_export, small_size)),
                                     widths = widths, ncol = 4, draw=F)
   } else {
     combined_plot <- egg::ggarrange(plot_km1_quality[[1]]+theme(plot.margin =  margin(5.5, -2.9, 0, 5.5)),
                                     plot_km1_quality[[2]]+theme(legend.position = "none", plot.margin =  margin(5.5, -2.9, 0, 0)),
                                     plot_km1_quality[[3]]+theme(plot.margin =  margin(5.5, 0, 0, 0)),
-                                    bottom = text_grob(ifelse(latex_export, "$\\tau$", "tau"), size = axis_title_size),
                                     widths = widths[1:3], ncol = 3, draw=F)  
   }
   
+  combined_plot <- annotate_figure(combined_plot, 
+                                   bottom = text_grob("Quality relative to best", 
+                                                      vjust = -1.5, size = axis_title_size(latex_export, small_size)))
+  if ( !is.null(title) ) {
+    combined_plot <- annotate_figure(combined_plot, 
+                                     top = text_grob(title, vjust = 1.5, size = plot_title_size(latex_export)))
+  }
+  
+  
   # Add Legend
   leg <- ggpubr::get_legend(plot_km1_quality[[2]])
-  combined_plot <- plot_grid(combined_plot, 
-                             ggpubr::as_ggplot(leg) + theme(plot.margin =  margin(0,0,0,0)), 
-                             ncol = 1, rel_heights = c(5,1))
+  if ( show_legend ) {
+    combined_plot <- plot_grid(combined_plot, 
+                               ggpubr::as_ggplot(leg) + theme(plot.margin =  margin(legend_top_margin,0,0,0)), 
+                               ncol = 1, rel_heights = c(5,1))
+  }
   return(combined_plot)
+}
+
+performace_plot_legend <- function(dataframes, 
+                                   legend_col = NULL,
+                                   latex_export = F,
+                                   small_size = F) {
+  
+  # Compute Performance Profile Plots
+  worst_ratio <- computeWorstRatioForAllFiltered(dataframes, objective = "avg_km1", effectivenes_test = effectivenes_test)
+  performance_profile = computePerformanceProfile(dataframes, "avg_km1",  
+                                                  effectivenes_test = effectivenes_test,
+                                                  worst_ratio = worst_ratio)
+  plot_km1_quality <-  performanceProfilePlot(performance_profile,
+                                              worst_ratio = worst_ratio,
+                                              hide_y_axis_title = FALSE,
+                                              show_infeasible_tick = TRUE,
+                                              show_timeout_tick = TRUE,
+                                              widths = c(3,2,1,1),
+                                              legend_col = legend_col,
+                                              latex_export = latex_export,
+                                              small_size = small_size) 
+  
+  leg <- ggpubr::get_legend(plot_km1_quality[[2]])
+  return(as_ggplot(leg))
 }
 
 performanceProfilePlot = function(profile_plots,
@@ -55,12 +92,14 @@ performanceProfilePlot = function(profile_plots,
                                   show_timeout_tick = T,
                                   worst_ratio = 999999999,
                                   widths = c(4,2,1,1),
+                                  legend_col = NULL,
                                   latex_export = F,
                                   small_size=F) {
-  
-  legend_col <- 4
-  if ( latex_export ) {
-    legend_col <- 2
+  if ( is.null(legend_col) ) {
+    legend_col <- 4
+    if ( latex_export ) {
+      legend_col <- 2
+    } 
   }
   
   original_aspect_ratio <- 1.236068 / 33.0
@@ -72,8 +111,8 @@ performanceProfilePlot = function(profile_plots,
     x_labels = c(1.0,1.05,"")
   } else {
     y_scale = scale_y_continuous(breaks=c(0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0))
-    x_breaks = c(1.0,1.02,1.04,1.06,1.08,1.1)
-    x_labels = c(1.0,1.02,1.04,1.06,1.08,"")
+    x_breaks = c(1.0,1.05,1.1)
+    x_labels = c(1.0,1.05,"")
   }
   
   a = ggplot(profile_plots[profile_plots$tau %<=% 1.1,], aes(x=tau, y=rho, color=algorithm)) + 
@@ -100,7 +139,8 @@ performanceProfilePlot = function(profile_plots,
     theme(axis.title.x = element_blank())
   
   if(hide_y_axis_title) {
-    a=  a +  theme(axis.title.y = element_blank())
+    a=  a +  theme(axis.title.y = element_blank(),
+                   axis.text.y = element_blank())
   }
   
   # Second Plot from tau = 1.1 to tau = 2
@@ -153,7 +193,7 @@ performanceProfilePlot = function(profile_plots,
     create_theme(latex_export, small_size, aspect_ratio = 2.15/ ( original_aspect_ratio * ( (widths[[3]] / sum(widths)) * 100.0 )  ),  legend_position = "none", panel_grid_size = 0.5) +
     theme(axis.text.y = element_blank(),
           axis.title.y = element_blank())
-
+  
   if ( show_infeasible_tick | show_timeout_tick  ) {
     # Fourth Plot showing infeasible and timeout instances
     infeasible_value <- max(worst_ratio,100) + 1
@@ -190,19 +230,30 @@ performanceProfilePlot = function(profile_plots,
   }
 }
 
-computeWorstRatioForAllFiltered = function(dataframes, objective){
+computeWorstRatioForAllFiltered = function(dataframes, objective,
+                                           effectivenes_test = F){
   for(i in 1:length(dataframes)) {
     # account for zero values
     dataframes[[i]] = dataframes[[i]] %>% mutate(!!(rlang::sym(objective)) := ifelse(!!(rlang::sym(objective)) %==% 0, 1, !!(rlang::sym(objective))))
     # correct sort order
-    dataframes[[i]] = dataframes[[i]][with(dataframes[[i]], order(graph,k)), ]
+    if ( effectivenes_test ) {
+      dataframes[[i]] = dataframes[[i]][with(dataframes[[i]], order(graph,k,instance)), ]
+    } else {
+      dataframes[[i]] = dataframes[[i]][with(dataframes[[i]], order(graph,k)), ]
+    }
     dataframes[[i]]$ratio = -1
   }
   
   #sanity checks
   for(i in 2:length(dataframes)) {
-    stopifnot(dataframes[[1]]$graph == dataframes[[i]]$graph, 
-              dataframes[[1]]$k == dataframes[[i]]$k)
+    if ( effectivenes_test ) {
+      stopifnot(dataframes[[1]]$graph == dataframes[[i]]$graph, 
+                dataframes[[1]]$k == dataframes[[i]]$k, 
+                dataframes[[1]]$instance == dataframes[[i]]$instance)
+    } else {
+      stopifnot(dataframes[[1]]$graph == dataframes[[i]]$graph, 
+                dataframes[[1]]$k == dataframes[[i]]$k)
+    }
   }
   
   worst_ratio = 0
@@ -226,18 +277,29 @@ computeWorstRatioForAllFiltered = function(dataframes, objective){
 
 computePerformanceProfile = function(dataframes, 
                                      objective,
+                                     effectivenes_test = F,
                                      worst_ratio){
   for(i in 1:length(dataframes)) {
     # Account for zero values
     dataframes[[i]] = dataframes[[i]] %>% mutate(!!(rlang::sym(objective)) := ifelse(!!(rlang::sym(objective)) %==% 0, 1, !!(rlang::sym(objective))))
     # Correct sort order
-    dataframes[[i]] = dataframes[[i]][with(dataframes[[i]], order(graph,k)), ]
+    if ( effectivenes_test ) {
+      dataframes[[i]] = dataframes[[i]][with(dataframes[[i]], order(graph,k,instance)), ]
+    } else {
+      dataframes[[i]] = dataframes[[i]][with(dataframes[[i]], order(graph,k)), ]
+    }
   }
   
   #Sanity checks
   for(i in 2:length(dataframes)) {
-    stopifnot(dataframes[[1]]$graph == dataframes[[i]]$graph, 
-              dataframes[[1]]$k == dataframes[[i]]$k)
+    if ( effectivenes_test ) {
+      stopifnot(dataframes[[1]]$graph == dataframes[[i]]$graph, 
+                dataframes[[1]]$k == dataframes[[i]]$k, 
+                dataframes[[1]]$instance == dataframes[[i]]$instance)
+    } else {
+      stopifnot(dataframes[[1]]$graph == dataframes[[i]]$graph, 
+                dataframes[[1]]$k == dataframes[[i]]$k)
+    }
   }
   
   # Find minima
@@ -339,4 +401,3 @@ computePerformanceProfile = function(dataframes,
   result = rbind(result, ones)
   return(result)
 } 
-

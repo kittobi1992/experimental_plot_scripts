@@ -32,10 +32,14 @@ source("plots/running_time_box_plot.R")
 source("plots/relative_running_time_plot.R")
 source("plots/speed_up_plot.R")
 source("plots/performance_profiles.R")
+source("plots/tradeoff_plot.R")
+source("plots/effectiveness_tests.R")
 
 
 csv_aggreg = function(df) data.frame(min_km1 = min(df$km1, na.rm=TRUE),
                                      avg_km1 = mean(df$km1, na.rm=TRUE),
+                                     min_cut = min(df$cut, na.rm=TRUE),
+                                     avg_cut = mean(df$cut, na.rm=TRUE),
                                      min_imbalance = min(df$imbalance, na.rm=TRUE),
                                      avg_imbalance = mean(df$imbalance, na.rm=TRUE),
                                      min_total_time = min(as.numeric(df$totalPartitionTime), na.rm=TRUE),
@@ -46,6 +50,8 @@ csv_aggreg = function(df) data.frame(min_km1 = min(df$km1, na.rm=TRUE),
 
 csv_speed_up_aggreg = function(df) data.frame(min_km1 = min(df$km1, na.rm=TRUE),
                                      avg_km1 = mean(df$km1, na.rm=TRUE),
+                                     min_cut = min(df$cut, na.rm=TRUE),
+                                     avg_cut = mean(df$cut, na.rm=TRUE),
                                      min_imbalance = min(df$imbalance, na.rm=TRUE),
                                      avg_imbalance = mean(df$imbalance, na.rm=TRUE),
                                      min_total_time = min(as.numeric(df$totalPartitionTime), na.rm=TRUE),
@@ -72,6 +78,7 @@ aggreg_data <- function(data, timelimit, epsilon) {
   data <- data %>% mutate(timeout = ifelse(as.numeric(totalPartitionTime) >= timelimit, TRUE, FALSE)) %>%
     mutate(cut = ifelse(timeout == TRUE, NA, cut)) %>% 
     mutate(km1 = ifelse(timeout == TRUE, NA, km1)) %>% 
+    mutate(imbalance = ifelse(timeout == TRUE, 1.0, imbalance)) %>% 
     mutate(totalPartitionTime = ifelse(timeout == TRUE, timelimit, totalPartitionTime)) 
   # Invalidate and modify all results of timeout instances
   if ( !"failed" %in% colnames(data) ) {
@@ -86,32 +93,14 @@ aggreg_data <- function(data, timelimit, epsilon) {
   }
   data <- ddply(data, c("graph", "k", "epsilon",  "num_threads"), csv_aggreg)
   data <- data %>% mutate(avg_km1 = ifelse(is.na(avg_km1), Inf, avg_km1)) %>% 
-    mutate(min_km1 = ifelse(is.na(min_km1), Inf, min_km1))
+    mutate(min_km1 = ifelse(is.na(min_km1), Inf, min_km1))%>% 
+    mutate(min_cut = ifelse(is.na(min_cut), Inf, min_cut))%>% 
+    mutate(avg_cut = ifelse(is.na(avg_cut), Inf, avg_cut))
   data <- data %>% mutate(infeasible = ifelse(min_imbalance > epsilon + .Machine$double.eps & failed == F &
                                                 ( min_imbalance != 1.0 | avg_time < timelimit ), TRUE, FALSE)) 
   data <- data %>% mutate(invalid = ifelse(failed == T | infeasible == T | timeout == T, TRUE, FALSE))
   return(data)
 }
-
-csv_speed_up_aggreg = function(df) data.frame(min_km1 = min(df$km1, na.rm=TRUE),
-                                              avg_km1 = mean(df$km1, na.rm=TRUE),
-                                              min_imbalance = min(df$imbalance, na.rm=TRUE),
-                                              avg_imbalance = mean(df$imbalance, na.rm=TRUE),
-                                              min_total_time = min(as.numeric(df$totalPartitionTime), na.rm=TRUE),
-                                              avg_total_time = mean(as.numeric(df$totalPartitionTime), na.rm=TRUE),
-                                              avg_time = mean(as.numeric(df$totalPartitionTime), na.rm=TRUE),
-                                              min_preprocessing_time = min(as.numeric(df$preprocessing_time), na.rm=TRUE),
-                                              avg_preprocessing_time = mean(as.numeric(df$preprocessing_time), na.rm=TRUE),
-                                              min_coarsening_time = min(as.numeric(df$coarsening_time), na.rm=TRUE),
-                                              avg_coarsening_time = mean(as.numeric(df$coarsening_time), na.rm=TRUE),
-                                              min_initial_partitioning_time = min(as.numeric(df$initial_partitioning_time), na.rm=TRUE),
-                                              avg_initial_partitioning_time = mean(as.numeric(df$initial_partitioning_time), na.rm=TRUE),
-                                              min_batch_uncontraction_time = min(as.numeric(df$batch_uncontraction_time), na.rm=TRUE),
-                                              avg_batch_uncontraction_time = mean(as.numeric(df$batch_uncontraction_time), na.rm=TRUE),
-                                              min_label_propagation_time = min(as.numeric(df$label_propagation_time), na.rm=TRUE),
-                                              avg_label_propagation_time = mean(as.numeric(df$label_propagation_time), na.rm=TRUE),
-                                              min_fm_time = min(as.numeric(df$fm_time), na.rm=TRUE),
-                                              avg_fm_time = mean(as.numeric(df$fm_time), na.rm=TRUE))
 
 aggreg_speed_up_data <- function(data) {
   data <- ddply(data, c("graph", "k", "epsilon",  "num_threads"), csv_speed_up_aggreg)
