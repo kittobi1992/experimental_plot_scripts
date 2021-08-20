@@ -2,6 +2,15 @@ source("functions.R")
 
 ############## SETUP DATA FRAMES ############## 
 
+add_missing_data <- function(dataframe) {
+  dataframe$timeout <- "no"
+  dataframe$km1 <- 0
+  dataframe$num_threads <- 1
+  dataframe$some_useless_column <- "BLABLA"
+  names(data)[names(data) == "TimePrePostProcessing"] <- "avg_preprocessing_time"
+  return(dataframe)
+}
+
 # Read Data Frames
 mt_kahypar_fast_64 <- aggreg_data(read.csv("data/mt_kahypar_fast_64.csv", header = TRUE), timelimit = 7200, epsilon = 0.03)
 mt_kahypar_strong_64 <- aggreg_data(read.csv("data/mt_kahypar_strong_64.csv", header = TRUE), timelimit = 7200, epsilon = 0.03)
@@ -20,8 +29,6 @@ algo_color_mapping <- c("Mt-KaHyPar Fast 64" = palette[[1]],
                         "Mt-KaHyPar Strong 64" = palette[[2]],
                         "Zoltan 64" = palette[[3]],
                         "PaToH-D" = palette[[4]])
-
-
 
 ############## Running Time Box Plot ############## 
 
@@ -82,6 +89,24 @@ print(performace_plot(list(mt_kahypar_fast_64,
                 latex_export = F,
                 small_size = F))
 
+############## Pareto Plot ############## 
+
+print(pareto_plot(dataframes = list(mt_kahypar_fast_64, mt_kahypar_strong_64, zoltan_64, patoh_d),
+                  quality_obj = "avg_km1",
+                  time_obj = "avg_total_time",
+                  x_ranges = list(c(1, 1.1), c(1.1, 2), c(2,10), c(10, Inf)),
+                  x_widths = c(2,1,2,1),
+                  x_breaks = c(1, 1.02, 1.04, 1.06, 1.08, 1.1, 1.5, 2, 5, 10, 100),
+                  x_labels = c("1", "1.02", "1.04", "1.06", "1.08", "1.1", "1.5", "2", "5", "10", "100"),
+                  y_ranges = list(c(1, 1.1), c(1.1, 2), c(2,10)),
+                  y_widths = c(2,2,1),
+                  y_breaks = c(1, 1.02, 1.04, 1.06, 1.08, 1.1, 1.5, 2, 10),
+                  y_labels = c("1", "1.02", "1.04", "1.06", "1.08", "1.1", "1.5", "2", "10"),
+                  density_alpha = 0.05,
+                  scale_last_x_log_10 = T,
+                  scale_last_y_log_10 = T,
+                  latex_export = FALSE,
+                  small_size = FALSE))
 
 ############## Quality - Running Time Trade-Off Plot ############## 
 

@@ -33,6 +33,7 @@ source("plots/relative_running_time_plot.R")
 source("plots/speed_up_plot.R")
 source("plots/performance_profiles.R")
 source("plots/tradeoff_plot.R")
+source("plots/pareto_plot.R")
 source("plots/effectiveness_tests.R")
 
 
@@ -70,7 +71,8 @@ csv_speed_up_aggreg = function(df) data.frame(min_km1 = min(df$km1, na.rm=TRUE),
                                      min_fm_time = min(as.numeric(df$fm_time), na.rm=TRUE),
                                      avg_fm_time = mean(as.numeric(df$fm_time), na.rm=TRUE))
 
-aggreg_data <- function(data, timelimit, epsilon) {
+aggreg_data <- function(data, timelimit, epsilon, seeds = 10) {
+  data <- data[data$seed <= seeds,]
   # Invalidate all objectives of imbalanced solutions
   data <- data %>% mutate(cut = ifelse(imbalance > epsilon + .Machine$double.eps, NA, cut)) %>% 
     mutate(km1 = ifelse(imbalance > epsilon + .Machine$double.eps, NA, km1))
@@ -111,6 +113,22 @@ aggreg_speed_up_data <- function(data) {
   return(data)
 }
 
+graphclass = function(row) {
+  if(grepl("*dual*", row['graph'])){
+    return("Dual")
+  } else if (grepl("*primal*", row['graph'])) {
+    return("Primal")
+  } else if (grepl("sat14*", row['graph'])) {
+    return("Literal")
+  } else if (grepl("*mtx*", row['graph'])) {
+    return("SPM")
+  }  else if (grepl("*ISPD98*", row['graph'])) {
+    return("ISPD")
+  } else {
+    return("DAC")
+  }
+}
+
 # Computes the geometric mean of a vector
 gm_mean = function(x, na.rm=TRUE, zero.propagate = FALSE){
   if(any(x < 0, na.rm = TRUE)){
@@ -120,9 +138,9 @@ gm_mean = function(x, na.rm=TRUE, zero.propagate = FALSE){
     if(any(x == 0, na.rm = TRUE)){
       return(0)
     }
-    return(exp(mean(log(x), na.rm = na.rm)))
+    return(exp(mean(log(x[x != Inf]), na.rm = na.rm)))
   } else {
-    return(exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x)))
+    return(exp(sum(log(x[x > 0 & x != Inf]), na.rm=na.rm) / length(x)))
   }
 }
 
