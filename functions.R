@@ -93,7 +93,7 @@ aggreg_data <- function(data, timelimit, epsilon, seeds = 10) {
   if ( !"num_threads" %in% colnames(data) ) {
     data$num_threads <- 1
   }
-  data <- ddply(data, c("graph", "k", "epsilon",  "num_threads"), csv_aggreg)
+  data <- ddply(data, c("algorithm", "graph", "k", "epsilon",  "num_threads"), csv_aggreg)
   data <- data %>% mutate(avg_km1 = ifelse(is.na(avg_km1), Inf, avg_km1)) %>% 
     mutate(min_km1 = ifelse(is.na(min_km1), Inf, min_km1))%>% 
     mutate(min_cut = ifelse(is.na(min_cut), Inf, min_cut))%>% 
