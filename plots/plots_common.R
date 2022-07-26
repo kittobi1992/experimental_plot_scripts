@@ -66,6 +66,7 @@ plot_line_size <- function(latex_export = F) {
 
 
 create_theme <- function(latex_export = F,
+                         small_ticks = F,
                          small_size = F,
                          aspect_ratio = 2/(1+sqrt(5)),
                          legend_position = "bottom",
@@ -89,8 +90,8 @@ create_theme <- function(latex_export = F,
                axis.line = element_line(size = 0.2, color = "black"),
                axis.title.y = element_text(size = axis_title_size(latex_export, small_size), vjust = 1.5, color = "black"),
                axis.title.x =  element_text(size = axis_title_size(latex_export, small_size), vjust = 1.5, color = "black"),
-               axis.text.x = element_text(angle = x_axis_text_angle, hjust = x_axis_text_hjust, size = axis_text_size(latex_export, small_size), color = "black"),
-               axis.text.y = element_text(size = axis_text_size(latex_export, small_size), color = "black")))
+               axis.text.x = element_text(angle = x_axis_text_angle, hjust = x_axis_text_hjust, size = axis_text_size(latex_export, small_size | small_ticks), color = "black"),
+               axis.text.y = element_text(size = axis_text_size(latex_export, small_size | small_ticks), color = "black")))
 }
 
 to_latex_math_mode <- function(x, latex_export = F) {

@@ -11,54 +11,32 @@ performace_plot <- function(dataframes,
                             widths = c(4,2,1,1),
                             title = NULL,
                             legend_top_margin = 0,
+                            legend_col = 2,
                             show_legend = TRUE,
+                            small_legend = F,
+                            small_ticks = F,
                             latex_export = F,
                             small_size = F) {
   
   # Compute Performance Profile Plots
-  worst_ratio <- computeWorstRatioForAllFiltered(dataframes, objective = objective)
+  worst_ratio <- computeWorstRatioForAllFiltered(dataframes, objective = objective, effectivenes_test = effectivenes_test)
   performance_profile = computePerformanceProfile(dataframes, objective,  
-                                                  worst_ratio = worst_ratio)
+                                                  worst_ratio = worst_ratio,
+                                                  effectivenes_test = effectivenes_test)
   plot_km1_quality <-  performanceProfilePlot(performance_profile,
                                               worst_ratio = worst_ratio,
                                               hide_y_axis_title = hide_y_axis_title,
                                               show_infeasible_tick = show_infeasible_tick,
                                               show_timeout_tick = show_timeout_tick,
                                               widths = widths,
+                                              title = title,
+                                              legend_col = legend_col,
+                                              show_legend = show_legend,
+                                              small_legend = small_legend,
+                                              small_ticks = small_ticks,
                                               latex_export = latex_export,
                                               small_size = small_size) 
-  
-  # Combine Performance Profile Plots
-  if (show_infeasible_tick | show_timeout_tick) {
-    combined_plot <- egg::ggarrange(plot_km1_quality[[1]]+theme(plot.margin =  margin(5.5, -2.9, 0, 5.5)),
-                                    plot_km1_quality[[2]]+theme(legend.position = "none", plot.margin =  margin(5.5, -2.9, 0, 0)),
-                                    plot_km1_quality[[3]]+theme(plot.margin =  margin(5.5, -2.9, 0, 0)),
-                                    plot_km1_quality[[4]]+theme(plot.margin =  margin(5.5, 0, 0, 0)),
-                                    widths = widths, ncol = 4, draw=F)
-  } else {
-    combined_plot <- egg::ggarrange(plot_km1_quality[[1]]+theme(plot.margin =  margin(5.5, -2.9, 0, 5.5)),
-                                    plot_km1_quality[[2]]+theme(legend.position = "none", plot.margin =  margin(5.5, -2.9, 0, 0)),
-                                    plot_km1_quality[[3]]+theme(plot.margin =  margin(5.5, 0, 0, 0)),
-                                    widths = widths[1:3], ncol = 3, draw=F)  
-  }
-  
-  combined_plot <- annotate_figure(combined_plot, 
-                                   bottom = text_grob("Quality relative to best", 
-                                                      vjust = -1.5, size = axis_title_size(latex_export, small_size)))
-  if ( !is.null(title) ) {
-    combined_plot <- annotate_figure(combined_plot, 
-                                     top = text_grob(title, vjust = 1.5, size = plot_title_size(latex_export)))
-  }
-  
-  
-  # Add Legend
-  leg <- ggpubr::get_legend(plot_km1_quality[[2]])
-  if ( show_legend ) {
-    combined_plot <- plot_grid(combined_plot, 
-                               ggpubr::as_ggplot(leg) + theme(plot.margin =  margin(legend_top_margin,0,0,0)), 
-                               ncol = 1, rel_heights = c(5,1))
-  }
-  return(combined_plot)
+  return(plot_km1_quality)
 }
 
 performace_plot_legend <- function(dataframes, 
@@ -67,9 +45,9 @@ performace_plot_legend <- function(dataframes,
                                    small_size = F) {
   
   # Compute Performance Profile Plots
-  worst_ratio <- computeWorstRatioForAllFiltered(dataframes, objective = "avg_km1", effectivenes_test = effectivenes_test)
+  worst_ratio <- computeWorstRatioForAllFiltered(dataframes, objective = "avg_km1", effectivenes_test = F)
   performance_profile = computePerformanceProfile(dataframes, "avg_km1",  
-                                                  effectivenes_test = effectivenes_test,
+                                                  effectivenes_test = F,
                                                   worst_ratio = worst_ratio)
   plot_km1_quality <-  performanceProfilePlot(performance_profile,
                                               worst_ratio = worst_ratio,
@@ -78,10 +56,11 @@ performace_plot_legend <- function(dataframes,
                                               show_timeout_tick = TRUE,
                                               widths = c(3,2,1,1),
                                               legend_col = legend_col,
+                                              show_legend = T,
                                               latex_export = latex_export,
                                               small_size = small_size) 
   
-  leg <- ggpubr::get_legend(plot_km1_quality[[2]])
+  leg <- ggpubr::get_legend(plot_km1_quality)
   return(as_ggplot(leg))
 }
 
@@ -93,8 +72,18 @@ performanceProfilePlot = function(profile_plots,
                                   worst_ratio = 999999999,
                                   widths = c(4,2,1,1),
                                   legend_col = NULL,
+                                  title = NULL,
+                                  show_legend = T,
+                                  small_legend = F,
+                                  small_ticks = F,
                                   latex_export = F,
                                   small_size=F) {
+  if ( ( show_infeasible_tick | show_timeout_tick ) & length(widths) < 4  ) {
+    widths <- c(widths,1)
+  }
+  
+  profile_plots$plotted_tau <- as.numeric(lapply(profile_plots$tau, FUN = plotted_tau, worst_ratio, widths))
+  
   if ( is.null(legend_col) ) {
     legend_col <- 4
     if ( latex_export ) {
@@ -102,136 +91,100 @@ performanceProfilePlot = function(profile_plots,
     } 
   }
   
-  original_aspect_ratio <- 1.236068 / 33.0
-  
-  # First Plot from tau = 1 to tau = 1.1
   if( small_size ) {
-    y_scale = scale_y_continuous(breaks=c(0.01,0.2,0.4,0.6,0.8,1.0))
-    x_breaks = c(1.0,1.05,1.1)
-    x_labels = c(1.0,1.05,"")
+    y_breaks = c(0.01,0.2,0.4,0.6,0.8,1.0)
   } else {
-    y_scale = scale_y_continuous(breaks=c(0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0))
-    x_breaks = c(1.0,1.05,1.1)
-    x_labels = c(1.0,1.05,"")
+    y_breaks = c(0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0)
   }
+  x_breaks = c(1.0,1.05,1.1,1.5,2)
+  x_labels = c(1.0,1.05,1.1,1.5,2)
   
-  a = ggplot(profile_plots[profile_plots$tau %<=% 1.1,], aes(x=tau, y=rho, color=algorithm)) + 
-    scale_color_manual(values=algo_color_mapping, drop = F) +
-    scale_x_continuous(breaks=x_breaks,labels=x_labels,expand = c(0, 0), limits=c(0.999,1.1)) +
-    annotate("segment", x=c(1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09), y=-0.065, xend=c(1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09), yend=-0.05, size=.5,
-             col="black") +
-    geom_vline(aes(xintercept=1.01), colour="grey", linetype="11", size=.5) +
-    geom_vline(aes(xintercept=1.02), colour="grey", linetype="11", size=.5) +
-    geom_vline(aes(xintercept=1.03), colour="grey", linetype="11", size=.5) +
-    geom_vline(aes(xintercept=1.04), colour="grey", linetype="11", size=.5) +
-    geom_vline(aes(xintercept=1.05), colour="grey", linetype="11", size=.5) +
-    geom_vline(aes(xintercept=1.06), colour="grey", linetype="11", size=.5) +
-    geom_vline(aes(xintercept=1.07), colour="grey", linetype="11", size=.5) +
-    geom_vline(aes(xintercept=1.08), colour="grey", linetype="11", size=.5) +
-    geom_vline(aes(xintercept=1.09), colour="grey", linetype="11", size=.5) +
-    coord_cartesian(ylim = c(0, 1), clip="off") +
-    y_scale +
-    geom_line(aes(color=algorithm),size=2*plot_line_size(latex_export)) +
-    theme_bw(base_size = 10) +
-    expand_limits(y=c(0.0,1.0)) +
-    labs(x="", y="Fraction of instances") +
-    create_theme(latex_export, small_size, aspect_ratio = 2.15/ ( original_aspect_ratio * ( (widths[[1]] / sum(widths)) * 100.0 )  ),  legend_position = "none", panel_grid_size = 0.5) +
-    theme(axis.title.x = element_blank())
-  
-  if(hide_y_axis_title) {
-    a=  a +  theme(axis.title.y = element_blank(),
-                   axis.text.y = element_blank())
-  }
-  
-  # Second Plot from tau = 1.1 to tau = 2
-  b = ggplot(profile_plots[profile_plots$tau %<=% 2.0 & profile_plots$tau %>=% 1.1,], aes(x=tau, y=rho, color=algorithm)) +
-    scale_color_manual(values=algo_color_mapping, drop = F) +
-    scale_x_continuous(breaks=c(1.1,1.5,2.0),expand = c(0, 0), limits=c(1.1,2.0),labels=c(1.1,1.5,2.0)) +
-    annotate("segment", x=c(1.25, 1.5, 1.75), y=-0.065, xend=c(1.25,1.5,1.75), yend=-0.05, size=.5,
-             col="black") +
-    geom_blank(data = profile_plots, aes(color=algorithm)) +
-    geom_vline(aes(xintercept=1.25), colour="grey", linetype="11", size=.5) +
-    geom_vline(aes(xintercept=1.5), colour="grey", linetype="11", size=.5) +
-    geom_vline(aes(xintercept=1.75), colour="grey", linetype="11", size=.5) +
-    y_scale +
-    geom_line(aes(color=algorithm),size=2*plot_line_size(latex_export)) +
-    theme_bw(base_size = 10) +
-    expand_limits(y=c(0.0,1.0)) +
-    coord_cartesian(ylim = c(0, 1), clip="off") +
-    labs(x="", y="") +
-    create_theme(latex_export, small_size, aspect_ratio = 2.15/ ( original_aspect_ratio * ( (widths[[2]] / sum(widths)) * 100.0 )  ),  legend_position = "bottom", panel_grid_size = 0.5) +
-    theme(axis.text.y = element_blank(),
-          axis.title.y = element_blank())
-  if (small_size) {
-    b = b +  guides(colour = guide_legend(title=NULL, ncol = legend_col, byrow = F,keyheight = .5, keywidth = .75, title.hjust=0),linetype = guide_legend(title=NULL))
-  } else {
-    b = b +  guides(colour = guide_legend(title=NULL, ncol = legend_col, byrow = F,keyheight = .5, title.hjust=0), linetype = guide_legend(title=NULL))
-  }
-  
-  
-  # Third Plot from tau = 2 to worst_ratio
   base_10 <- max(floor(log10(worst_ratio)),2)
-  x_breaks <- c(2,10,10^base_10)
-  x_labels <- c("",pow_text(10,1,latex_export),pow_text(10,base_10,latex_export))
-  x_limits <- c(2,max(worst_ratio,10^base_10))
-  if ( !show_infeasible_tick & !show_timeout_tick ) {
-    if ( base_10 > 2 ) {
-      x_limits <- c(2,max(worst_ratio,10^(base_10 + 3)))
-    } else {
-      x_limits <- c(2,max(worst_ratio,10^(base_10 + 0.75)))
-    }
-  }
-  c = ggplot(profile_plots[profile_plots$tau %>=% 2.0 & profile_plots$tau %<=% max(worst_ratio,100),], aes(x=tau, y=rho, color=algorithm))  +
-    geom_line(aes(color=algorithm),size=2*plot_line_size(latex_export)) +
-    scale_color_manual(values=algo_color_mapping, drop = F) +
-    scale_x_continuous(trans="lam",breaks=x_breaks,labels=x_labels,expand = c(0, 0),limits=x_limits) +
-    y_scale +
-    expand_limits(y=c(0.0,1.0)) +
-    coord_cartesian(ylim = c(0, 1), clip="off") +
-    theme_bw(base_size = 10) +
-    labs(x="", y="ddd") +
-    create_theme(latex_export, small_size, aspect_ratio = 2.15/ ( original_aspect_ratio * ( (widths[[3]] / sum(widths)) * 100.0 )  ),  legend_position = "none", panel_grid_size = 0.5) +
-    theme(axis.text.y = element_blank(),
-          axis.title.y = element_blank())
-  
+  x_breaks <- c(x_breaks, ifelse(base_10 >= 4, 10^2, 10), 10^base_10)
+  x_labels <- c(x_labels, ifelse(base_10 >= 4, pow_text(10,2,latex_export), pow_text(10,1,latex_export)),pow_text(10,base_10,latex_export))
+  x_limit <-  sum(widths) + 0.25
   if ( show_infeasible_tick | show_timeout_tick  ) {
-    # Fourth Plot showing infeasible and timeout instances
     infeasible_value <- max(worst_ratio,100) + 1
     timeout_value <- max(worst_ratio,100) + 2
-    y_breaks <- c(max(worst_ratio,100))
-    y_labels <- c("")
+    reduce_limit <- F
+    if ( !show_infeasible_tick ) {
+      timeout_value <- infeasible_value
+      profile_plots <- profile_plots %>% mutate(plotted_tau = 
+                                                  ifelse(tau > max(worst_ratio,100), plotted_tau(infeasible_value, worst_ratio, widths), plotted_tau))
+      reduce_limit <- T
+    }
+    if ( reduce_limit | !show_timeout_tick ) {
+      x_limit <-  plotted_tau(infeasible_value + 1, worst_ratio, widths)
+    }
+    
     x_min <- ifelse(show_infeasible_tick, infeasible_value - 1, infeasible_value)
     x_max <- ifelse(show_timeout_tick, timeout_value + 1, infeasible_value + 1)
-    y_breaks <- add_infeasible_break(y_breaks, infeasible_value, show_infeasible_tick, latex_export)
-    y_labels <- add_infeasible_label(y_labels, infeasible_value, show_infeasible_tick, latex_export)
-    y_breaks <- add_timeout_break(y_breaks, timeout_value, show_timeout_tick, latex_export)
-    y_labels <- add_timeout_label(y_labels, timeout_value, show_timeout_tick, latex_export)
-    
-    d = ggplot(profile_plots[profile_plots$tau %>=% x_min & profile_plots$tau %<=% x_max,], aes(x=tau, y=rho, color=algorithm))  +
-      geom_line(aes(color=algorithm),size=2*plot_line_size(latex_export)) +
-      scale_color_manual(values=algo_color_mapping, drop = F) +
-      scale_x_continuous(breaks=y_breaks,labels=y_labels,expand = c(0, 0),limits=c(x_min,x_max)) +
-      y_scale +
-      expand_limits(y=c(0.0,1.0)) +
-      coord_cartesian(ylim = c(0, 1), clip="off") +
-      theme_bw(base_size = 10) +
-      labs(x="", y="ddd")
-    if ( latex_export ) {
-      d <- d + create_theme(latex_export, small_size, aspect_ratio = 2.15/ ( original_aspect_ratio * ( (widths[[4]] / sum(widths)) * 100.0 )  ),  legend_position = "none", panel_grid_size = 0.5)
-    } else {
-      d <- d + create_theme(latex_export, small_size, aspect_ratio = 2.15/ ( original_aspect_ratio * ( (widths[[4]] / sum(widths)) * 100.0 )  ),  
-                            legend_position = "none", panel_grid_size = 0.5, x_axis_text_angle = 30, x_axis_text_hjust = 1)
-    }
-    d <- d + theme(axis.text.y = element_blank(),
-                   axis.title.y = element_blank()) 
-    return(list(a,b,c,d))
-  } else {
-    return(list(a,b,c))
+    x_breaks <- add_infeasible_break(x_breaks, infeasible_value, show_infeasible_tick, latex_export)
+    x_labels <- add_infeasible_label(x_labels, infeasible_value, show_infeasible_tick, latex_export)
+    x_breaks <- add_timeout_break(x_breaks, timeout_value, show_timeout_tick, latex_export)
+    x_labels <- add_timeout_label(x_labels, timeout_value, show_timeout_tick, latex_export)
+  } 
+  
+  p = ggplot(profile_plots, aes(x=plotted_tau, y=rho, color=algorithm)) +
+    scale_y_continuous(breaks = y_breaks) +
+    scale_x_continuous(breaks = as.numeric(lapply(x_breaks, FUN = plotted_tau, worst_ratio, widths)), labels = x_labels,
+                       expand = c(0, 0), limits=c(-0.02,x_limit))
+  
+  x_ticks <- c(1.01,1.02,1.03,1.04,1.06,1.07,1.08,1.09,1.25,1.75)
+  x_ticks <- as.numeric(lapply(x_ticks, FUN = plotted_tau, worst_ratio, widths))
+  p = p +     
+    annotate("segment", x=x_ticks, y=-0.065, xend=x_ticks, yend=-0.05, size=.5, col="black") +
+    geom_vline(aes(xintercept=plotted_tau(1.01, worst_ratio, widths)), colour="grey", linetype="11", size=.5) +
+    geom_vline(aes(xintercept=plotted_tau(1.02, worst_ratio, widths)), colour="grey", linetype="11", size=.5) +
+    geom_vline(aes(xintercept=plotted_tau(1.03, worst_ratio, widths)), colour="grey", linetype="11", size=.5) +
+    geom_vline(aes(xintercept=plotted_tau(1.04, worst_ratio, widths)), colour="grey", linetype="11", size=.5) +
+    geom_vline(aes(xintercept=plotted_tau(1.06, worst_ratio, widths)), colour="grey", linetype="11", size=.5) +
+    geom_vline(aes(xintercept=plotted_tau(1.07, worst_ratio, widths)), colour="grey", linetype="11", size=.5) +
+    geom_vline(aes(xintercept=plotted_tau(1.08, worst_ratio, widths)), colour="grey", linetype="11", size=.5) +
+    geom_vline(aes(xintercept=plotted_tau(1.09, worst_ratio, widths)), colour="grey", linetype="11", size=.5) +
+    geom_vline(aes(xintercept=plotted_tau(1.25, worst_ratio, widths)), colour="grey", linetype="11", size=.5) +
+    geom_vline(aes(xintercept=plotted_tau(1.75, worst_ratio, widths)), colour="grey", linetype="11", size=.5)
+  
+  
+  p = p + geom_blank(data = profile_plots, aes(color=algorithm)) +
+    geom_line(aes(color=algorithm),size=2*plot_line_size(latex_export)) +
+    theme_bw(base_size = 10) +
+    expand_limits(y=c(0.0,1.0)) +
+    coord_cartesian(ylim = c(0, 1), clip="off") +
+    labs(x=ifelse(latex_export, "Quality Relative to Best $[\\tau]$", "Quality Relative to Best"), y="Fraction of Instances") +
+    ggtitle(title) +
+    scale_color_manual(values=algo_color_mapping, drop = F, limits = force) +
+    create_theme(latex_export, small_ticks, small_size,  legend_position = "bottom", panel_grid_size = 0.5)
+  
+  p = p + geom_vline(aes(xintercept=plotted_tau(1.1, worst_ratio, widths)), colour="black", size=.5) +
+    geom_vline(aes(xintercept=plotted_tau(2, worst_ratio, widths)), colour="black", size=.5) 
+  if ( show_infeasible_tick | show_timeout_tick ) {
+    p = p + geom_vline(aes(xintercept=plotted_tau(10^base_10, worst_ratio, widths)), colour="black", size=.5) 
   }
+  
+  if(hide_y_axis_title) {
+    p =  p  +  theme(axis.title.y = element_blank(),
+                     axis.text.y = element_blank())
+  }
+  
+  if (!show_legend) {
+    p = p + theme(legend.position = "none")
+  } else {
+    p = p + theme(legend.text = element_text(size = legend_text_size(latex_export, small_size | small_legend)))
+  }
+  
+  if (small_size) {
+    p = p +  guides(colour = guide_legend(title=NULL, ncol = legend_col, byrow = F,keyheight = .5, keywidth = .75, title.hjust=0),linetype = guide_legend(title=NULL))
+  } else {
+    p = p +  guides(colour = guide_legend(title=NULL, ncol = legend_col, byrow = F,keyheight = .5, title.hjust=0), linetype = guide_legend(title=NULL))
+  }
+  
+  return(p)
 }
 
 computeWorstRatioForAllFiltered = function(dataframes, objective,
                                            effectivenes_test = F){
+  
   for(i in 1:length(dataframes)) {
     # account for zero values
     dataframes[[i]] = dataframes[[i]] %>% mutate(!!(rlang::sym(objective)) := ifelse(!!(rlang::sym(objective)) %==% 0, 1, !!(rlang::sym(objective))))
@@ -274,7 +227,6 @@ computeWorstRatioForAllFiltered = function(dataframes, objective,
   return(worst_ratio)
 }
 
-
 computePerformanceProfile = function(dataframes, 
                                      objective,
                                      effectivenes_test = F,
@@ -312,6 +264,7 @@ computePerformanceProfile = function(dataframes,
   for(i in 1:length(dataframes)) {
     dataframes[[i]]$ratio =  dataframes[[i]][[objective]] / global_mins_min
   }
+  
   
   # Set a large infeasible ratio for infeasible solutions
   infeasible_value = max(worst_ratio,100) + 1
@@ -401,3 +354,102 @@ computePerformanceProfile = function(dataframes,
   result = rbind(result, ones)
   return(result)
 } 
+
+plotted_tau <- function(tau, worst_ratio, widths) {
+  worst_ratio <- max(100, worst_ratio)
+  if ( tau <= 1.1 ) {
+    return( widths[1] * ( (tau - 1) / 0.1) )
+  } else if ( tau > 1.1 & tau <= 2 ) {
+    return(widths[1] + widths[2] * ( ( tau - 1.1 ) / 0.9 ) )
+  } else if ( tau > 2 & tau <= worst_ratio ) {
+    return(sum(widths[1:2]) + widths[3] * ( log10( 1 + tau - 2 ) / log10(1 + worst_ratio - 2) ) )
+  } else if (length(widths) == 4) {
+    return(sum(widths[1:3]) + widths[4] * ( ( tau - worst_ratio ) / 2 ) )
+  } else {
+    return(sum(widths[1:3]) + ( ( tau - worst_ratio ) / 2 ) )
+  }
+}
+
+
+timeout_plot <- function(dataframes,
+                         objective = "avg_km1",
+                         time_limit = 28800,
+                         show_legend = T,
+                         to_latex = F,
+                         small_ticks = F,
+                         small_size = F) {
+  
+  data = data.frame(algorithm= character(0), graph = character(0), k = integer(0), avg_time = double(0), obj = double(0))
+  for ( df in dataframes ) {
+    data <- rbind(data, df[,c("algorithm","graph","k","avg_time",objective)])
+  }
+  data <- data[order(data$avg_time),]
+  
+  best_obj <- hash()
+  best_algo <- hash()
+  best_cnt <- hash()
+  algo_cnt <- hash()
+  result = data.frame(algorithm= character(0), time = double(0), best = integer(0), cnt = integer(0))
+  for ( algo in levels(factor(data$algorithm)) ) {
+    algo_cnt[algo] <- 0
+    best_cnt[algo] <- 0
+  }
+  for ( row in 1:nrow(data) ) {
+    algo <- data[row,"algorithm"]
+    graph <- data[row,"graph"]
+    k <- data[row,"k"]
+    time <- data[row,"avg_time"]
+    obj <- data[row, objective]
+    
+    key <- paste(graph,k)
+    algo_c <- get(algo, algo_cnt) + 1
+    algo_cnt[algo] <- algo_c
+    new_best <- F
+    if ( has.key(key, best_obj) ) {
+      other_obj <- get(key, best_obj)
+      other_algo <- get(key, best_algo)
+      if ( obj < other_obj  ) {
+        new_best <- T
+        best_c <- get(other_algo, best_cnt)
+        c <- get(other_algo, algo_cnt)
+        result <- rbind(result, data.frame(algorithm = other_algo, time = time, best = best_c - 1, cnt = c))
+        best_cnt[other_algo] <- best_c - 1
+      }
+    } else {
+      new_best <- T
+    }
+    
+    best_c <- get(algo, best_cnt)
+    if ( new_best ) {
+      best_obj[key] <- obj
+      best_algo[key] <- algo
+      best_c <- best_c + 1
+      best_cnt[algo] <- best_c
+    }
+    result <- rbind(result, data.frame(algorithm = algo, time = time, best = best_c, cnt = algo_c))
+  }
+  for ( algo in levels(factor(data$algorithm)) ) {
+    result <- rbind(result, data.frame(algorithm = algo, time = time_limit, best = get(algo, best_cnt), cnt = nrow(dataframes[[1]])))
+  }
+  result$rel_best <- result$best / nrow(dataframes[[1]])
+  result$rel_cnt <- result$cnt / nrow(dataframes[[1]])
+  
+  p = ggplot(result, aes(x=time, y=rel_best, color=algorithm)) +
+    scale_x_continuous(trans = pseudo_log_trans(base = 10), breaks = c(0, 10^seq(0,log10(time_limit)), time_limit)) +
+    scale_y_continuous(breaks = c(0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0), 
+                       labels = c("0.00","0.10","0.20","0.30","0.40","0.50","0.60","0.70","0.80","0.90","1.00")) +
+    geom_line(aes(y=rel_cnt), alpha = 0.5, linetype = "dashed") + 
+    geom_line(size=2*plot_line_size(to_latex)) + 
+    theme_bw(base_size = 10) +
+    expand_limits(x = c(0,0), y=c(0.0,1.0)) +
+    # coord_cartesian(ylim = c(0, 1), clip="off") +
+    labs(x="Time Limit in Seconds", y="Fraction of Best Solutions") +
+    scale_color_manual(values=algo_color_mapping, drop = F, limits = force) + 
+    create_theme(to_latex, small_ticks, small_size, legend_position = "bottom", panel_grid_size = 0.5)
+  
+  if (!show_legend) {
+    p = p + theme(legend.position = "none")
+  }
+  
+  return(p) 
+}

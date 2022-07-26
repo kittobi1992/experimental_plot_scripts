@@ -2,6 +2,7 @@ tradeoff_plot <- function(dataframes,
                           relative_to,
                           objective = "avg_km1",
                           order = NULL,
+                          point_size_scaling = 1, 
                           ncol = 3,
                           legend_col = 4,
                           latex_export = F,
@@ -20,8 +21,10 @@ tradeoff_plot <- function(dataframes,
   
   # restrict benchmark set to all instances for which we currently have results
   semi_join_filter = semi_join(relative_to, dataframes[[1]], by=c('graph','k'))
-  for ( i in seq(2,length(dataframes)) ) {
-    semi_join_filter = semi_join(semi_join_filter, dataframes[[i]], by=c('graph','k'))
+  if ( length(dataframes) > 1  ) {
+    for ( i in seq(2,length(dataframes)) ) {
+      semi_join_filter = semi_join(semi_join_filter, dataframes[[i]], by=c('graph','k'))
+    } 
   }
   
   # apply the semi_join_filter to all data frames
@@ -36,10 +39,12 @@ tradeoff_plot <- function(dataframes,
   dataframes[[1]]$rel_time <- relative_to$avg_time / dataframes[[1]]$avg_time
   dataframes[[1]]$rel_obj <- relative_to[[objective]] / dataframes[[1]][[objective]] - 1
   result <- dataframes[[1]]
-  for ( i in seq(2,length(dataframes)) ) {
-    dataframes[[i]]$rel_time <- relative_to$avg_time / dataframes[[i]]$avg_time
-    dataframes[[i]]$rel_obj <- relative_to[[objective]] / dataframes[[i]][[objective]] - 1
-    result <- rbind(result, dataframes[[i]])
+  if ( length(dataframes) > 1  ) {
+    for ( i in seq(2,length(dataframes)) ) {
+      dataframes[[i]]$rel_time <- relative_to$avg_time / dataframes[[i]]$avg_time
+      dataframes[[i]]$rel_obj <- relative_to[[objective]] / dataframes[[i]][[objective]] - 1
+      result <- rbind(result, dataframes[[i]])
+    } 
   }
   
   if ( !is.null(order) ) {
@@ -54,7 +59,7 @@ tradeoff_plot <- function(dataframes,
   y_labels <- c(ifelse(latex_export, "\\ding{55}", "imb"), "-1", "-0.1", "-0.01", "0", "0.01", "0.1", "1")
   contains_imbalanced_results <- any(result$infeasible)
   tradeoff_plot = ggplot(result, aes(x=rel_time, y=rel_obj, color=algorithm)) +
-    geom_point(size = 0.5 * plot_point_size(latex_export), alpha = 0.25) +
+    geom_point(size = point_size_scaling * 0.5 * plot_point_size(latex_export), alpha = 0.25) +
     scale_x_continuous(trans = "log10", breaks = c(0.01, 1, 100, 10000),
                        labels = pow_text(10, seq(from = -2, to = 4, by = 2), latex_export)) +
     scale_y_continuous(trans = pseudo_log_trans(base = 10), breaks = y_breaks, labels = y_labels) + 

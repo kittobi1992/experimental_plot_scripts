@@ -79,7 +79,7 @@ effectivenessTestDataFrame <- function(num_virtual_instances,
     return(tmp_virtual_instances)
   }
   
-  write.csv(virtual_instances, file = output_csv_file, quote = F, row.names = F)
+  write.csv2(virtual_instances, file = output_csv_file, quote = F, row.names = F)
   return(virtual_instances)
 }
 
@@ -92,6 +92,8 @@ effectivenessTestPerformanceProfile <- function(effectiveness_test_df,
                                                 widths = c(4,2,1,1),
                                                 title = NULL,
                                                 latex_export = F,
+                                                small_legend = F,
+                                                small_ticks = F,
                                                 small_size = F) {
   virtual_algo_1 <- effectiveness_test_df[effectiveness_test_df$algo == algo_name_1,]
   virtual_algo_1 <- droplevels(virtual_algo_1)
@@ -103,11 +105,14 @@ effectivenessTestPerformanceProfile <- function(effectiveness_test_df,
   quality <- performace_plot(list(virtual_algo_1, 
                                   virtual_algo_2), 
                              objective = objective, 
+                             effectivenes_test = T,
                              hide_y_axis_title = hide_y_axis_title,
                              show_infeasible_tick = show_infeasible_tick,
                              show_timeout_tick = show_timeout_tick,
                              widths = widths,
                              latex_export = latex_export,
+                             small_legend = small_legend,
+                             small_ticks = small_ticks,
                              small_size = small_size)
   return(quality) 
 }

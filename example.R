@@ -89,24 +89,27 @@ print(performace_plot(list(mt_kahypar_fast_64,
                 latex_export = F,
                 small_size = F))
 
+############## Timeout Plot ############## 
+
+print(timeout_plot(list(mt_kahypar_fast_64, 
+                        mt_kahypar_strong_64, 
+                        zoltan_64, 
+                        patoh_d),
+                   objective = "avg_km1",
+                   time_limit = 7200))
+
 ############## Pareto Plot ############## 
 
 print(pareto_plot(dataframes = list(mt_kahypar_fast_64, mt_kahypar_strong_64, zoltan_64, patoh_d),
                   quality_obj = "avg_km1",
                   time_obj = "avg_total_time",
-                  x_ranges = list(c(1, 1.1), c(1.1, 2), c(2,10), c(10, Inf)),
-                  x_widths = c(2,1,2,1),
-                  x_breaks = c(1, 1.02, 1.04, 1.06, 1.08, 1.1, 1.5, 2, 5, 10, 100),
-                  x_labels = c("1", "1.02", "1.04", "1.06", "1.08", "1.1", "1.5", "2", "5", "10", "100"),
-                  y_ranges = list(c(1, 1.1), c(1.1, 2), c(2,10)),
-                  y_widths = c(2,2,1),
-                  y_breaks = c(1, 1.02, 1.04, 1.06, 1.08, 1.1, 1.5, 2, 10),
-                  y_labels = c("1", "1.02", "1.04", "1.06", "1.08", "1.1", "1.5", "2", "10"),
-                  density_alpha = 0.05,
-                  scale_last_x_log_10 = T,
-                  scale_last_y_log_10 = T,
-                  latex_export = FALSE,
-                  small_size = FALSE))
+                  x_breaks = c(1,2,4,8,16,32,64,128),
+                  x_limits = c(1,128),
+                  y_trans = "identity",
+                  y_breaks = c(1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5),
+                  y_limits = c(1, 1.5),
+                  latex_export = F,
+                  small_size = F))
 
 ############## Quality - Running Time Trade-Off Plot ############## 
 
@@ -160,10 +163,10 @@ mt_kahypar_q_64$algorithm <- "Mt-KaHyPar-Q 64"
 
 # Specify Colors of Algorithms in Plots
 palette <- brewer.pal(n = 9, name = "Set1")
-algo_color_mapping <- c("Mt-KaHyPar-Q 64" = palette[[1]],
-                        "Mt-KaHyPar-Q 16" = palette[[2]],
-                        "Mt-KaHyPar-Q 4" = palette[[3]],
-                        "Mt-KaHyPar-Q 1" = palette[[4]])
+algo_color_mapping <- c("64" = palette[[1]],
+                        "16" = palette[[2]],
+                        "4" = palette[[3]],
+                        "1" = palette[[4]])
 
 # Compute Speed Up
 objectives <- c("total", "coarsening", "initial_partitioning", "batch_uncontraction", "label_propagation", "fm")
@@ -171,6 +174,48 @@ print(detailed_speed_up_vs_single_threaded_plot(list(mt_kahypar_q_4,
                                                      mt_kahypar_q_16,
                                                      mt_kahypar_q_64),
                                                 relative_to = mt_kahypar_q_1,
-                                                objectives, 
+                                                target = "avg",
+                                                objective = "total", 
                                                 latex_export = F,
                                                 small_size = F))
+
+############## Running Time Shares Plot ############## 
+
+select <- "select * from ex1"
+mt_kahypar_d_64 <- aggreg_data(dbGetQuery(dbConnect(SQLite(), dbname="data/mt_kahypar_d_64.db"),select), timelimit = 7200, epsilon = 0.03, aggreg = csv_detailed_aggreg)
+
+# Specify Colors of Algorithms in Plots
+palette <- brewer.pal(n = 9, name = "Set1")
+palette[[6]] <- "#AE8D0A"
+algo_color_mapping <- c("Community Detection" = palette[[1]],
+                        "Coarsening" = palette[[2]],
+                        "Initial Partitioning" = palette[[3]],
+                        "Label Propagation" = palette[[4]],
+                        "FM" = palette[[5]],
+                        "Flows" = palette[[6]],
+                        "Apply Moves" = palette[[1]],
+                        "Grow Region $B$" = palette[[2]],
+                        "Flow Network Construction" = palette[[3]],
+                        "\\Partitioner{FlowCutter}" = palette[[4]],
+                        "Other" = palette[[7]])
+
+print(running_time_share_plot_per_instance(mt_kahypar_d_64,
+                                           objectives = c("avg_community_detection_time", "avg_coarsening_time", "avg_initial_partitioning_time", "avg_lp_time", "avg_fm_time"),
+                                           obj_names = c("Community Detection", "Coarsening", "Initial Partitioning", "Label Propagation", "FM"),
+                                           total_time = "avg_time",
+                                           order_obj = "avg_fm_time",
+                                           legend_pos = "bottom",
+                                           small_ticks = F,
+                                           small_size = F,
+                                           to_latex = F))
+
+print(running_time_share_plot(mt_kahypar_d_64,
+                              objectives = c("avg_community_detection_time", "avg_coarsening_time", "avg_initial_partitioning_time", "avg_lp_time", "avg_fm_time"),
+                              obj_names = c("Community Detection", "Coarsening", "Initial Partitioning", "Label Propagation", "FM"),
+                              total_time = "avg_time",
+                              order_obj = "avg_fm_time",
+                              step = 0.5,
+                              legend_pos = "none",
+                              small_ticks = F,
+                              small_size = F,
+                              to_latex = F))
